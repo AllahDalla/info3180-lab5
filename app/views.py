@@ -5,10 +5,17 @@ Werkzeug Documentation:  https://werkzeug.palletsprojects.com/
 This file creates your application.
 """
 
-from app import app
-from flask import render_template, request, jsonify, send_file
-import os
 
+from urllib import response
+from app import app, db
+from flask import render_template, request, jsonify, send_file, url_for
+from werkzeug.utils import secure_filename
+from flask_wtf.csrf import generate_csrf
+from app.models import Movie
+from app.forms import MovieForm
+import requests
+import os
+from datetime import datetime
 
 ###
 # Routing for your application.
@@ -18,6 +25,33 @@ import os
 def index():
     return jsonify(message="This is the beginning of our API")
 
+@app.route('/api/v1/movies', methods=['POST'])
+def movies():
+    form = MovieForm()
+    if(request.method == "POST"):
+        if(form.validate_on_submit()):
+            title = form.title.data
+            description = form.description.data
+            poster = form.poster.data
+            filename = secure_filename(poster.filename)
+            poster.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+            print(title, description, poster, filename)
+            record = Movie(title=title, description=description, poster=filename, created_at=datetime.utcnow())
+            db.session.add(record)
+            db.session.commit()
+            return jsonify(message="Movie successfully added", title=title, poster=filename, description=description)
+        else:
+            errors = form_errors(form)
+            return jsonify(errors=errors)
+
+@app.route('/upload_movie', methods=['GET', 'POST'])
+def uploadMovie():
+    form = MovieForm()
+    return render_template('movieForm.html', form=form)
+ 
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+ return jsonify({'csrf_token': generate_csrf()})
 
 ###
 # The functions below should be applicable to all Flask apps.

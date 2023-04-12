@@ -1,4 +1,12 @@
 <template>
+    <div v-if="errors.length > 0" class="alert alert-danger" role="alert">
+      <ul>
+        <li v-for="error in errors" :key="error">{{ error }}</li>
+      </ul>
+    </div>
+    <div v-if="success" class="alert alert-success" role="alert">
+      {{ message }}
+    </div>
     <form @submit.prevent="saveMovie" id="movieForm">
       <div class="form-group mb-3">
         <label for="title" class="form-label">Movie Title</label>
@@ -28,12 +36,14 @@
     // const description = ref('')
     // const poster = ref(0)
     let csrf_token = ref("")
+    let errors = ref([])
+    let message = ref("Your movie was successfully added!")
+    let success = ref(false)
   
     async function getCsrfToken() {
         await fetch('/api/v1/csrf-token')
         .then(async (response) => await response.json())
         .then(async (data) => {
-        console.log(await data);
         csrf_token.value = data.csrf_token;
         })
         .catch(async error => console.log(await error))
@@ -58,7 +68,14 @@
         })
 
         .then(async data => {
-            console.log(await data)
+            console.log(await data.errors)
+            if(typeof await data.errors === undefined){
+              errors.value = []
+              success.value = true
+            }else{
+              errors.value = await data.errors
+              success.value = false
+            }
         })
 
         .catch(async error => {
